@@ -1,0 +1,79 @@
+services:
+
+  automation:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    environment:
+      GENERIC_TIMEZONE: America/Recife
+      WEBHOOK_URL:
+    restart: always
+    networks:
+      - w4-automation-network
+    volumes:
+      - ./n8n_automation:/home/node/.n8n
+
+  evolution_api:
+    container_name: evolution_api
+    image: atendai/evolution-api:latest
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - 8080:8080
+    volumes:
+      - ./evolution_instances:/evolution/instances
+    environment:
+      - DATABASE_PROVIDER=postgresql
+      - CACHE_REDIS_ENABLED=false
+      - AUTHENTICATION_API_KEY=9XQPUCEMCMZH21NSJRIAEK9LGQ9L5JU0
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1023204200
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=evolution
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: >
+      redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_instances:/data
+    ports:
+      - 6379:6379
+
+  ngrok:
+    container_name: ngrok_automation
+    image: ngrok/ngrok:latest
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command:
+      - "start"
+      - "--all"
+      - "--config"
+      - "/etc/ngrok.yml"
+    networks:
+      - w4-automation-network
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+
+
+volumes:
+  n8n_automation:
+  evolution_instances:
+  postgres_data:
+
+networks:
+  w4-automation-network:
+    driver: bridge

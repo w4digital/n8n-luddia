@@ -1,0 +1,7 @@
+version: 2
+log_level: debug
+tunnels:
+  automation:
+    proto: http
+    addr: automation:5678
+    domain: bear-crisp-presumably.ngrok-free.app
